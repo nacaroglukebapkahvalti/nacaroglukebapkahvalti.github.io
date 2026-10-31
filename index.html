@@ -55,27 +55,47 @@ var DATA=[
 ["Sıcak İçecekler",null,[["Çay",20],["Türk Kahvesi",80],["Osmanlı Kahvesi",80],["Nescafe",80]]],
 ["Soğuk İçecekler",null,[["Su",15],["Ayran",30],["Soda",30],["Şalgam",40],["Kola / Fanta / Gazoz",70],["Meyve Suyu Çeşitleri",50],["Sıkma Portakal",150]]]
 ];
-var menu=document.getElementById("menu");
-var SL=["kebap","corba","baklava","kahvalti","katmer","gozleme","tost","sicak","soguk"];
-var home=document.createElement("div");home.className="view";home.id="v-home";
-var g=document.createElement("div");g.className="grid";home.appendChild(g);menu.appendChild(home);
-var views={"":home};
-DATA.forEach(function(c,i){
-  var v=document.createElement("div");v.className="view";
-  var bk=document.createElement("button");bk.className="back";bk.type="button";bk.textContent="‹ Menü";bk.onclick=function(){location.hash=""};
-  var h=document.createElement("h2");h.textContent=c[0];
-  var u=document.createElement("ul");
-  c[2].forEach(function(it){
-    var l=document.createElement("li"),a=document.createElement("span"),p=document.createElement("span");
-    a.textContent=it[0];
-    if(typeof it[1]==="number"){p.className="p";p.textContent=it[1]+" TL"}else{p.className="p q";p.textContent=it[1]}
-    l.appendChild(a);l.appendChild(p);u.appendChild(l)});
-  v.appendChild(bk);v.appendChild(h);v.appendChild(u);menu.appendChild(v);views[SL[i]]=v;
-  var t=document.createElement("button");t.className="tile";t.type="button";t.textContent=c[0];
-  t.onclick=function(){location.hash=SL[i]};g.appendChild(t)});
+var menu=document.getElementById("menu"),views={};
 function show(){var k=location.hash.slice(1);if(!views[k])k="";
   for(var n in views)views[n].className="view"+(n===k?" on":"");window.scrollTo(0,0)}
-window.addEventListener("hashchange",show);show();
+function render(D){
+  menu.innerHTML="";views={};
+  var home=document.createElement("div");home.className="view";
+  var g=document.createElement("div");g.className="grid";home.appendChild(g);menu.appendChild(home);views[""]=home;
+  D.forEach(function(c,i){
+    var slug="k"+i,v=document.createElement("div");v.className="view";
+    var bk=document.createElement("button");bk.className="back";bk.type="button";bk.textContent="‹ Menü";bk.onclick=function(){location.hash=""};
+    var h=document.createElement("h2");h.textContent=c[0];
+    var u=document.createElement("ul");
+    c[2].forEach(function(it){
+      var l=document.createElement("li"),a=document.createElement("span"),p=document.createElement("span");
+      a.textContent=it[0];
+      if(typeof it[1]==="number"){p.className="p";p.textContent=it[1]+" TL"}else{p.className="p q";p.textContent=it[1]}
+      l.appendChild(a);l.appendChild(p);u.appendChild(l)});
+    v.appendChild(bk);v.appendChild(h);v.appendChild(u);menu.appendChild(v);views[slug]=v;
+    var t=document.createElement("button");t.className="tile";t.type="button";t.textContent=c[0];
+    t.onclick=function(){location.hash=slug};g.appendChild(t)});
+  show()}
+function parseCSV(t){var rows=[],r=[],f="",q=false,i,ch;t=t.replace(/^\uFEFF/,"");
+  for(i=0;i<t.length;i++){ch=t[i];
+    if(q){if(ch==='"'){if(t[i+1]==='"'){f+='"';i++}else q=false}else f+=ch}
+    else if(ch==='"')q=true;
+    else if(ch===","){r.push(f);f=""}
+    else if(ch==="\n"||ch==="\r"){if(ch==="\r"&&t[i+1]==="\n")i++;r.push(f);f="";rows.push(r);r=[]}
+    else f+=ch}
+  if(f!==""||r.length){r.push(f);rows.push(r)}return rows}
+function fromCSV(t){var rows=parseCSV(t).slice(1),D=[],idx={};
+  rows.forEach(function(r){var c=(r[0]||"").trim(),n=(r[1]||"").trim();if(!c||!n)return;
+    var p=(r[2]||"").replace(/TL/i,"").replace(/\s/g,"");
+    var val=/^\d+$/.test(p)?parseInt(p,10):(p===""?Q:p);
+    if(!(c in idx)){idx[c]=D.length;D.push([c,null,[]])}
+    D[idx[c]][2].push([n,val])});
+  return D}
+window.addEventListener("hashchange",show);
+render(DATA);
+var SHEET="https://docs.google.com/spreadsheets/d/e/2PACX-1vTUsslf6Lw1a-YJ5t-AKY2VFlay1jNugTFU0z7k7A_q2kOQF4-6xL3NdK01SVGfg_0qfQ7IWLMiUbxv/pub?gid=41258251&single=true&output=csv";
+function load(url){return fetch(url).then(function(r){if(!r.ok)throw 0;return r.text()}).then(function(t){var D=fromCSV(t);if(!D.length)throw 0;return D})}
+load(SHEET).catch(function(){return load("menu.csv?v="+Date.now())}).then(render).catch(function(){});
 </script>
 </body>
 </html>
